@@ -2,74 +2,70 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WMS-AE Smart Dashboard</title>
+    <title>WMS-AE Smart | Master Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-3xl font-bold mb-6 text-gray-800">Warehouse Inventory Dashboard</h1>
+<body class="bg-gray-50 p-6">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-navy-900">WMS-AE Master Dashboard</h1>
 
-        <div class="bg-white p-4 rounded-lg shadow mb-6">
-            <h2 class="text-lg font-semibold mb-2">Connect to Supabase</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input id="supabaseUrl" type="text" placeholder="Supabase Project URL" class="border p-2 rounded w-full">
-                <input id="supabaseKey" type="password" placeholder="Supabase Anon Key" class="border p-2 rounded w-full">
+        <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <input id="supabaseUrl" type="text" placeholder="Supabase URL" class="border p-2 rounded">
+                <input id="supabaseKey" type="password" placeholder="Anon Key" class="border p-2 rounded">
             </div>
-            <button onclick="initSupabase()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Connect & Load Data</button>
+            <div class="flex gap-2">
+                <select id="tableSelect" class="border p-2 rounded flex-grow">
+                    <option value="">-- Pumili ng Table --</option>
+                    <option value="Issuance Log">Issuance Log</option>
+                    <option value="MRR Lines">MRR Lines</option>
+                    <option value="MRR_List">MRR_List</option>
+                    <option value="Manpower">Manpower</option>
+                    <option value="Monthly Inventory">Monthly Inventory</option>
+                    <option value="PERSIS">PERSIS</option>
+                    <option value="PO Lines">PO Lines</option>
+                    <option value="Product List">Product List</option>
+                    <option value="Receiving Log">Receiving Log</option>
+                    <option value="Stock Change">Stock Change</option>
+                    <option value="Trip Ticket">Trip Ticket</option>
+                    <option value="UM">UM</option>
+                </select>
+                <button onclick="loadTable()" class="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-900 font-bold">Load Data</button>
+            </div>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow mb-6">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="border-b">
-                        <th class="p-3">Item Code</th>
-                        <th class="p-3">Item Name</th>
-                        <th class="p-3">Quantity</th>
-                    </tr>
-                </thead>
-                <tbody id="inventoryBody"></tbody>
+        <div class="bg-white p-6 rounded-xl shadow-md overflow-x-auto">
+            <table class="w-full text-sm text-left border-collapse">
+                <thead id="tableHead" class="bg-blue-50 text-blue-900 uppercase"></thead>
+                <tbody id="tableBody" class="divide-y divide-gray-200"></tbody>
             </table>
         </div>
     </div>
 
     <script>
-        let supabaseClient;
-
-        async function initSupabase() {
+        async function loadTable() {
             const url = document.getElementById('supabaseUrl').value.trim();
             const key = document.getElementById('supabaseKey').value.trim();
+            const tableName = document.getElementById('tableSelect').value;
             
-            if (!url || !key) {
-                alert('Please enter your Supabase URL and Key');
-                return;
-            }
+            if (!tableName) { alert('Pumili ng table!'); return; }
+            
+            const client = supabase.createClient(url, key);
+            const { data, error } = await client.from(tableName).select('*').limit(100);
 
-            try {
-                supabaseClient = supabase.createClient(url, key);
-                const { data, error } = await supabaseClient
-                    .from('inventory')
-                    .select('*');
+            if (error) { alert('Error: ' + error.message); return; }
+            if (!data || data.length === 0) { alert('Walang record sa table na ito.'); return; }
 
-                if (error) throw error;
-
-                const tbody = document.getElementById('inventoryBody');
-                tbody.innerHTML = '';
-                
-                data.forEach(item => {
-                    tbody.innerHTML += `
-                        <tr class="border-b">
-                            <td class="p-3">${item.item_code}</td>
-                            <td class="p-3">${item.item_name}</td>
-                            <td class="p-3 font-bold">${item.quantity}</td>
-                        </tr>
-                    `;
-                });
-            } catch (err) {
-                alert('Error: ' + err.message);
-                console.error(err);
-            }
+            const head = document.getElementById('tableHead');
+            const body = document.getElementById('tableBody');
+            
+            // Build Headers
+            head.innerHTML = `<tr>${Object.keys(data[0]).map(k => `<th class="p-3 border-b">${k}</th>`).join('')}</tr>`;
+            // Build Rows
+            body.innerHTML = data.map(row => `
+                <tr class="hover:bg-gray-50">${Object.values(row).map(v => `<td class="p-3 border-b">${v ?? ''}</td>`).join('')}</tr>
+            `).join('');
         }
     </script>
 </body>

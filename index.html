@@ -5,15 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WMS-AE Smart Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-100 p-8">
-
     <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold mb-6 text-gray-800">Warehouse Inventory Dashboard</h1>
 
-        <!-- Configuration Section -->
         <div class="bg-white p-4 rounded-lg shadow mb-6">
             <h2 class="text-lg font-semibold mb-2">Connect to Supabase</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -23,19 +20,7 @@
             <button onclick="initSupabase()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Connect & Load Data</button>
         </div>
 
-        <!-- Add Item Form -->
         <div class="bg-white p-6 rounded-lg shadow mb-6">
-            <h2 class="text-xl font-semibold mb-4">Add New Item</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <input id="itemName" type="text" placeholder="Item Name" class="border p-2 rounded">
-                <input id="itemCode" type="text" placeholder="Item Code" class="border p-2 rounded">
-                <input id="quantity" type="number" placeholder="Quantity" class="border p-2 rounded">
-                <button onclick="addItem()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Add Item</button>
-            </div>
-        </div>
-
-        <!-- Inventory Table -->
-        <div class="bg-white p-6 rounded-lg shadow">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="border-b">
@@ -44,77 +29,48 @@
                         <th class="p-3">Quantity</th>
                     </tr>
                 </thead>
-                <tbody id="inventoryBody">
-                    <!-- Data will be loaded here -->
-                </tbody>
+                <tbody id="inventoryBody"></tbody>
             </table>
         </div>
     </div>
 
     <script>
-        let supabase;
+        let supabaseClient;
 
-        // Initialize Supabase Connection
-        function initSupabase() {
-            const url = document.getElementById('supabaseUrl').value;
-            const key = document.getElementById('supabaseKey').value;
+        async function initSupabase() {
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
             
             if (!url || !key) {
                 alert('Please enter your Supabase URL and Key');
                 return;
             }
 
-            supabase = supabase.createClient(url, key);
-            loadInventory();
-        }
+            try {
+                supabaseClient = supabase.createClient(url, key);
+                const { data, error } = await supabaseClient
+                    .from('inventory')
+                    .select('*');
 
-        // Fetch Data
-        async function loadInventory() {
-            const { data, error } = await supabase
-                .from('inventory')
-                .select('*');
+                if (error) throw error;
 
-            if (error) {
-                console.error(error);
-                alert('Error loading data: ' + error.message);
-                return;
-            }
-
-            const tbody = document.getElementById('inventoryBody');
-            tbody.innerHTML = '';
-            
-            data.forEach(item => {
-                tbody.innerHTML += `
-                    <tr class="border-b">
-                        <td class="p-3">${item.item_code}</td>
-                        <td class="p-3">${item.item_name}</td>
-                        <td class="p-3 font-bold">${item.quantity}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        // Insert Data
-        async function addItem() {
-            const name = document.getElementById('itemName').value;
-            const code = document.getElementById('itemCode').value;
-            const qty = parseInt(document.getElementById('quantity').value);
-
-            const { data, error } = await supabase
-                .from('inventory')
-                .insert([{ item_name: name, item_code: code, quantity: qty }]);
-
-            if (error) {
-                alert('Error: ' + error.message);
-            } else {
-                alert('Item added successfully!');
-                loadInventory();
+                const tbody = document.getElementById('inventoryBody');
+                tbody.innerHTML = '';
+                
+                data.forEach(item => {
+                    tbody.innerHTML += `
+                        <tr class="border-b">
+                            <td class="p-3">${item.item_code}</td>
+                            <td class="p-3">${item.item_name}</td>
+                            <td class="p-3 font-bold">${item.quantity}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                alert('Error: ' + err.message);
+                console.error(err);
             }
         }
     </script>
 </body>
 </html>
-
-Yarehouse inventory right in your browser.
-
-This is a professional foundation that you can expand by adding search bars, edit buttons, or even barcode scanning support later. Let me know if you need help adding more features to this!

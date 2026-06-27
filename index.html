@@ -17,17 +17,17 @@
             <input id="aiKey" placeholder="Gemini API Key" class="border p-2 rounded col-span-2">
             
             <select id="tableSelect" class="border p-2 rounded">
-                <option value="Issuance_Log">Issuance Log</option>
-                <option value="Monthly_Inventory">Monthly Inventory</option>
-                <option value="MRR_Lines">MRR Lines</option>
-                <option value="Product_List">Product List</option>
+                <option value="Issuance_Log">Issuance_Log</option>
+                <option value="Monthly_Inventory">Monthly_Inventory</option>
+                <option value="MRR_Lines">MRR_Lines</option>
+                <option value="Product_List">Product_List</option>
             </select>
             <button onclick="analyzeData()" class="bg-indigo-600 text-white font-bold py-2 rounded hover:bg-indigo-700">Load & AI Analyze</button>
         </div>
 
-        <div id="aiBox" class="bg-indigo-900 text-white p-6 rounded-xl shadow-lg mb-6 hidden">
+        <div id="aiBox" class="bg-indigo-900 text-white p-6 rounded-xl shadow-lg mb-6">
             <h2 class="font-bold text-lg mb-2 text-indigo-300">AI Inventory Insights</h2>
-            <div id="aiOutput">Naghahanap ng insights...</div>
+            <div id="aiOutput">I-click ang button para simulan ang pagsusuri...</div>
         </div>
 
         <div class="bg-white p-6 rounded-xl shadow-md overflow-x-auto">
@@ -40,35 +40,38 @@
 
     <script>
         async function analyzeData() {
+            const output = document.getElementById('aiOutput');
             const url = document.getElementById('supabaseUrl').value.trim();
             const key = document.getElementById('supabaseKey').value.trim();
             const aiKey = document.getElementById('aiKey').value.trim();
             const table = document.getElementById('tableSelect').value;
 
             if (!aiKey) { alert("Pakilagay ang Gemini API Key"); return; }
+            output.innerText = "Kumokonekta sa database at AI...";
 
-            // 1. Fetch data from Supabase
-            const client = supabase.createClient(url, key);
-            const { data, error } = await client.from(table).select('*').limit(20);
-            
-            if (error) { alert("Supabase Error: " + error.message); return; }
+            try {
+                // 1. Fetch data
+                const client = supabase.createClient(url, key);
+                const { data, error } = await client.from(table).select('*').limit(20);
+                if (error) throw error;
 
-            // 2. Render Table
-            const body = document.getElementById('tableBody');
-            body.innerHTML = data.map(row => `<tr>${Object.values(row).map(v => `<td class="p-2 border">${v ?? ''}</td>`).join('')}</tr>`).join('');
+                // 2. Render Table
+                document.getElementById('tableBody').innerHTML = data.map(row => 
+                    `<tr>${Object.values(row).map(v => `<td class="p-2 border">${v ?? ''}</td>`).join('')}</tr>`
+                ).join('');
 
-            // 3. AI Analysis
-            document.getElementById('aiBox').classList.remove('hidden');
-            document.getElementById('aiOutput').innerText = "Nag-aanalyze ang AI...";
+                // 3. AI Analysis (Gamit ang tamang window object)
+                const genAI = new window.google.generativeai.GoogleGenerativeAI(aiKey);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const prompt = `Data mula sa ${table}: ${JSON.stringify(data)}. Magbigay ng 3 maikling insights o babala tungkol sa inventory status.`;
+                
+                const result = await model.generateContent(prompt);
+                output.innerText = result.response.text();
 
-            const genAI = new GoogleGenerativeAI(aiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-            const prompt = `Ito ang data mula sa ${table} ng warehouse ko: ${JSON.stringify(data)}. 
-            Magbigay ka ng 3 mahalagang observations o babala (e.g., kulang na stock, kakaibang pattern). 
-            Maging direkta at professional.`;
-            
-            const result = await model.generateContent(prompt);
-            document.getElementById('aiOutput').innerText = result.response.text();
+            } catch (err) {
+                console.error(err);
+                output.innerText = "Error: " + err.message;
+            }
         }
     </script>
 </body>

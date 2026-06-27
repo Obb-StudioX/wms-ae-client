@@ -1,70 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>WMS-AE Master Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-2xl font-bold mb-4">WMS-AE Master Dashboard</h1>
+<script src="https://cdn.jsdelivr.net/npm/@google/generative-ai@0.1.0/dist/index.min.js"></script>
+
+<div class="bg-white p-6 rounded-xl shadow-md mt-6">
+    <h2 class="text-lg font-bold mb-2">AI Inventory Assistant</h2>
+    <input id="aiKey" type="password" placeholder="Enter Google AI API Key" class="border p-2 w-full mb-2">
+    <textarea id="aiPrompt" class="w-full border p-2 mb-2" placeholder="Tanungin ang AI tungkol sa data... hal: 'Alin ang may pinakamababang stock?'"></textarea>
+    <button onclick="askAI()" class="bg-purple-600 text-white px-4 py-2 rounded">Ask AI</button>
+    <div id="aiResponse" class="mt-4 p-4 bg-gray-50 border rounded hidden"></div>
+</div>
+
+<script>
+    async function askAI() {
+        const apiKey = document.getElementById('aiKey').value;
+        const prompt = document.getElementById('aiPrompt').value;
+        const tableData = document.getElementById('tableBody').innerText; // Kinukuha ang data sa screen
         
-        <div class="bg-white p-6 rounded shadow mb-6">
-            <input id="supabaseUrl" type="text" placeholder="Project URL" class="border p-2 w-full mb-2">
-            <input id="supabaseKey" type="password" placeholder="Anon Key" class="border p-2 w-full mb-2">
-            
-            <select id="tableSelect" class="border p-2 w-full mb-2">
-                <option value="Issuance_Log">Issuance_Log</option>
-                <option value="Monthly_Inventory">Monthly_Inventory</option>
-                <option value="MRR_Lines">MRR_Lines</option>
-                <option value="MRR_List">MRR_List</option>
-                <option value="Manpower">Manpower</option>
-                <option value="PERSIS">PERSIS</option>
-                <option value="PO_Lines">PO_Lines</option>
-                <option value="Product_List">Product_List</option>
-                <option value="Receiving_Log">Receiving_Log</option>
-                <option value="Stock_Change">Stock_Change</option>
-                <option value="Trip_Ticket">Trip_Ticket</option>
-                <option value="UM">UM</option>
-            </select>
-            
-            <button onclick="loadTable()" class="bg-blue-600 text-white px-4 py-2 rounded">Load Selected Table</button>
-        </div>
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        <div class="overflow-x-auto bg-white p-4 shadow">
-            <table class="w-full border text-sm text-left">
-                <thead id="tableHead" class="bg-gray-200"></thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <script>
-        async function loadTable() {
-            const url = document.getElementById('supabaseUrl').value.trim();
-            const key = document.getElementById('supabaseKey').value.trim();
-            const table = document.getElementById('tableSelect').value;
-
-            const client = supabase.createClient(url, key);
-            
-            // Dito namin ginagamit ang exact table name na may underscore
-            const { data, error } = await client.from(table).select('*').limit(50);
-
-            if (error) {
-                alert("Error: " + error.message);
-                console.error(error);
-                return;
-            }
-
-            const head = document.getElementById('tableHead');
-            const body = document.getElementById('tableBody');
-            
-            if (data.length > 0) {
-                head.innerHTML = `<tr>${Object.keys(data[0]).map(k => `<th class="p-2 border">${k}</th>`).join('')}</tr>`;
-                body.innerHTML = data.map(row => `<tr>${Object.values(row).map(v => `<td class="p-2 border">${v ?? ''}</td>`).join('')}</tr>`).join('');
-            }
-        }
-    </script>
-</body>
-</html>
+        const result = await model.generateContent(`Base sa data na ito: ${tableData}. Sagutin ang tanong: ${prompt}`);
+        const response = await result.response;
+        
+        const outputDiv = document.getElementById('aiResponse');
+        outputDiv.innerText = response.text();
+        outputDiv.classList.remove('hidden');
+    }
+</script>

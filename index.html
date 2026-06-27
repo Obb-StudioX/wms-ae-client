@@ -2,42 +2,44 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WMS-AE Smart | Master Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMS-AE Master Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-50 p-6">
+<body class="bg-gray-100 p-4 md:p-8">
     <div class="max-w-7xl mx-auto">
-        <h1 class="text-3xl font-bold mb-6 text-navy-900">WMS-AE Master Dashboard</h1>
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">WMS-AE Master Dashboard</h1>
 
         <div class="bg-white p-6 rounded-xl shadow-md mb-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <input id="supabaseUrl" type="text" placeholder="Supabase URL" class="border p-2 rounded">
-                <input id="supabaseKey" type="password" placeholder="Anon Key" class="border p-2 rounded">
+                <input id="supabaseUrl" type="text" placeholder="Supabase Project URL" class="border p-2 rounded w-full">
+                <input id="supabaseKey" type="password" placeholder="Anon Key" class="border p-2 rounded w-full">
             </div>
-            <div class="flex gap-2">
-                <select id="tableSelect" class="border p-2 rounded flex-grow">
+            <div class="flex flex-col md:flex-row gap-2">
+                <select id="tableSelect" class="border p-2 rounded w-full">
                     <option value="">-- Pumili ng Table --</option>
-                    <option value="Issuance Log">Issuance Log</option>
-                    <option value="MRR Lines">MRR Lines</option>
+                    <option value="Monthly_Inventory">Monthly Inventory</option>
+                    <option value="Issuance_Log">Issuance Log</option>
                     <option value="MRR_List">MRR_List</option>
+                    <option value="MRR_Lines">MRR Lines</option>
                     <option value="Manpower">Manpower</option>
-                    <option value="Monthly Inventory">Monthly Inventory</option>
                     <option value="PERSIS">PERSIS</option>
-                    <option value="PO Lines">PO Lines</option>
-                    <option value="Product List">Product List</option>
-                    <option value="Receiving Log">Receiving Log</option>
-                    <option value="Stock Change">Stock Change</option>
-                    <option value="Trip Ticket">Trip Ticket</option>
+                    <option value="PO_Lines">PO Lines</option>
+                    <option value="Product_List">Product List</option>
+                    <option value="Receiving_Log">Receiving Log</option>
+                    <option value="Stock_Change">Stock Change</option>
+                    <option value="Trip_Ticket">Trip Ticket</option>
                     <option value="UM">UM</option>
+                    <option value="User_login">User login</option>
                 </select>
-                <button onclick="loadTable()" class="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-900 font-bold">Load Data</button>
+                <button onclick="loadTable()" class="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-900 font-bold whitespace-nowrap">Load Data</button>
             </div>
         </div>
 
         <div class="bg-white p-6 rounded-xl shadow-md overflow-x-auto">
             <table class="w-full text-sm text-left border-collapse">
-                <thead id="tableHead" class="bg-blue-50 text-blue-900 uppercase"></thead>
+                <thead id="tableHead" class="bg-gray-100 text-gray-700 uppercase"></thead>
                 <tbody id="tableBody" class="divide-y divide-gray-200"></tbody>
             </table>
         </div>
@@ -49,23 +51,41 @@
             const key = document.getElementById('supabaseKey').value.trim();
             const tableName = document.getElementById('tableSelect').value;
             
-            if (!tableName) { alert('Pumili ng table!'); return; }
+            if (!url || !key) { alert('Pakilagay ang URL at Key'); return; }
+            if (!tableName) { alert('Pumili ng table mula sa listahan!'); return; }
             
-            const client = supabase.createClient(url, key);
-            const { data, error } = await client.from(tableName).select('*').limit(100);
+            try {
+                const client = supabase.createClient(url, key);
+                
+                // Fetch data
+                const { data, error } = await client
+                    .from(tableName)
+                    .select('*')
+                    .limit(100);
 
-            if (error) { alert('Error: ' + error.message); return; }
-            if (!data || data.length === 0) { alert('Walang record sa table na ito.'); return; }
+                if (error) throw error;
+                if (!data || data.length === 0) { alert('Walang record sa table na ito.'); return; }
 
-            const head = document.getElementById('tableHead');
-            const body = document.getElementById('tableBody');
-            
-            // Build Headers
-            head.innerHTML = `<tr>${Object.keys(data[0]).map(k => `<th class="p-3 border-b">${k}</th>`).join('')}</tr>`;
-            // Build Rows
-            body.innerHTML = data.map(row => `
-                <tr class="hover:bg-gray-50">${Object.values(row).map(v => `<td class="p-3 border-b">${v ?? ''}</td>`).join('')}</tr>
-            `).join('');
+                const head = document.getElementById('tableHead');
+                const body = document.getElementById('tableBody');
+                
+                // Clear old data
+                head.innerHTML = '';
+                body.innerHTML = '';
+                
+                // Add Headers
+                const columns = Object.keys(data[0]);
+                head.innerHTML = `<tr>${columns.map(c => `<th class="p-3 border-b">${c}</th>`).join('')}</tr>`;
+                
+                // Add Rows
+                body.innerHTML = data.map(row => `
+                    <tr class="hover:bg-gray-50">${columns.map(c => `<td class="p-3 border-b">${row[c] ?? ''}</td>`).join('')}</tr>
+                `).join('');
+                
+            } catch (err) {
+                alert('Error: ' + err.message);
+                console.error(err);
+            }
         }
     </script>
 </body>
